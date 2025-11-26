@@ -1,0 +1,9 @@
+body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  #map {
+    height: 60vh;   /* o 100vh si quieres el mapa a pantalla completa */
+    width: 100%;
+  }
