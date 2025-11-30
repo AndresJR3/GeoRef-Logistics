@@ -1,16 +1,24 @@
 {
-  "name": "proyectofinalgeo",
+  "name": "georef-logistics",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "start index.js",
-    "dev": "nodemon app.js"
+    "start": "node app.js",
+    "dev": "npx nodemon app.js",
+    "client": "npm run dev --prefix client",
+    "client:build": "npm run build --prefix client",
+    "client:install": "npm install --prefix client",
+    "build": "npm run client:install && npm run client:build",
+    "production": "set NODE_ENV=production && node app.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Sistema de gestión de entregas georeferenciado",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.1",

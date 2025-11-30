@@ -1,0 +1,147 @@
+import { useEffect, useRef, useCallback } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
+
+// Fix Leaflet default markers
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+const icons = {
+  place: L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  }),
+  client: L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  }),
+  delivery: L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  }),
+  driver: L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-gold.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  }),
+};
+
+const Map = ({ items, type, onMapClick, selectedItem, onMarkerClick }) => {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersClusterRef = useRef(null);
+  const markersMapRef = useRef(new Map());
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapInstanceRef.current) {
+      mapInstanceRef.current = L.map(mapRef.current).setView([21.15, -101.68], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(mapInstanceRef.current);
+
+      markersClusterRef.current = L.markerClusterGroup();
+      mapInstanceRef.current.addLayer(markersClusterRef.current);
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Handle map click
+  useEffect(() => {
+    if (!mapInstanceRef.current || !onMapClick) return;
+
+    const handleClick = (e) => {
+      onMapClick(e.latlng);
+    };
+
+    mapInstanceRef.current.on('click', handleClick);
+
+    return () => {
+      mapInstanceRef.current.off('click', handleClick);
+    };
+  }, [onMapClick]);
+
+  // Update markers
+  useEffect(() => {
+    if (!markersClusterRef.current) return;
+
+    markersClusterRef.current.clearLayers();
+    markersMapRef.current.clear();
+
+    items.forEach((item) => {
+      let lat, lng, title, desc;
+
+      if (type === 'driver') {
+        if (item.currentLocation?.coordinates) {
+          [lng, lat] = item.currentLocation.coordinates;
+        } else {
+          return;
+        }
+        title = item.name;
+        desc = item.vehicle || '';
+      } else {
+        if (!item.location?.coordinates) return;
+        [lng, lat] = item.location.coordinates;
+        title = item.name || (item.description ? `Entrega: ${item.description}` : 'Item');
+        desc = item.address || item.description || item.status || '';
+      }
+
+      const marker = L.marker([lat, lng], { icon: icons[type] || icons.place })
+        .bindPopup(`<b>${title}</b><br>${desc}`);
+
+      marker.on('click', () => {
+        if (onMarkerClick) onMarkerClick(item);
+      });
+
+      markersClusterRef.current.addLayer(marker);
+      markersMapRef.current.set(item._id, marker);
+    });
+  }, [items, type, onMarkerClick]);
+
+  // Center on selected item
+  useEffect(() => {
+    if (!selectedItem || !mapInstanceRef.current) return;
+
+    let coords;
+    if (selectedItem.currentLocation?.coordinates) {
+      coords = selectedItem.currentLocation.coordinates;
+    } else if (selectedItem.location?.coordinates) {
+      coords = selectedItem.location.coordinates;
+    }
+
+    if (coords) {
+      const [lng, lat] = coords;
+      mapInstanceRef.current.setView([lat, lng], 16);
+
+      const marker = markersMapRef.current.get(selectedItem._id);
+      if (marker) {
+        marker.openPopup();
+      }
+    }
+  }, [selectedItem]);
+
+  return <div id="map" ref={mapRef} style={{ width: '100%', height: '100%' }} />;
+};
+
+export default Map;

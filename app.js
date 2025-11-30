@@ -1,8 +1,10 @@
 // app.js
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
 // IMPORTAR RUTAS
 const authRoutes = require('./routes/auth');
@@ -19,7 +21,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for dev
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -31,9 +33,8 @@ app.set('io', io);
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
-app.use(express.static('public'));
 
-// RUTAS
+// RUTAS API
 app.use('/auth', authRoutes);
 app.use('/places', placeRoutes);
 app.use('/polygons', polygonRoutes);
@@ -42,6 +43,19 @@ app.use('/clients', require('./routes/clients'));
 app.use('/deliveries', require('./routes/deliveries'));
 app.use('/drivers', require('./routes/drivers'));
 
+// SERVIR FRONTEND REACT EN PRODUCCIÓN
+if (process.env.NODE_ENV === 'production') {
+  // Servir archivos estáticos del build de React
+  app.use(express.static(path.join(__dirname, 'client', 'dist')));
+
+  // Todas las rutas no-API redirigen al index.html de React
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+  });
+} else {
+  // En desarrollo, servir la carpeta public original
+  app.use(express.static('public'));
+}
 
 // ERROR HANDLING
 app.use(errorHandler.logErrors);
@@ -51,15 +65,8 @@ app.use(errorHandler.errorHandler);
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
 
-  // Listen for driver location updates from client (e.g. driver app)
   socket.on('updateLocation', async (data) => {
-    // data: { driverId, lat, lng }
-    // Broadcast to all clients (admin view)
     io.emit('driverLocationUpdated', data);
-
-    // Optionally save to DB here or via API call
-    // const Driver = require('./models/Driver');
-    // await Driver.findByIdAndUpdate(data.driverId, { ... });
   });
 
   socket.on('disconnect', () => {
@@ -67,11 +74,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// CONEXIÓN DIRECTA A MONGO
+// CONEXIÓN A MONGODB
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://alanfx3:Keeper2003117@cluster25712.lslbiye.mongodb.net/?retryWrites=true&w=majority&appName=cluster25712';
+
 mongoose
-  .connect(
-    'mongodb+srv://alanfx3:Keeper2003117@cluster25712.lslbiye.mongodb.net/?retryWrites=true&w=majority&appName=cluster25712'
-  )
+  .connect(MONGODB_URI)
   .then(() => {
     console.log('MongoDB connected');
   })
@@ -80,7 +87,8 @@ mongoose
   });
 
 // LEVANTAR SERVIDOR
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
