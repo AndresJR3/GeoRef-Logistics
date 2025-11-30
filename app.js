@@ -48,8 +48,8 @@ if (process.env.NODE_ENV === 'production') {
   // Servir archivos estáticos del build de React
   app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
-  // Todas las rutas no-API redirigen al index.html de React
-  app.get('*', (req, res) => {
+  // Todas las rutas no-API redirigen al index.html de React (Express 5 syntax)
+  app.get('/{*splat}', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
   });
 } else {
