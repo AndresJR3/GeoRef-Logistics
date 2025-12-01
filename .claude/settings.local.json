@@ -5,7 +5,10 @@
       "Bash(npm install)",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run client:build:*)"
+      "Bash(npm run client:build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: add table view, popup edit/delete, and polygon drawing\n\n- Add table view with toggle between cards and table display\n- Add edit/delete buttons in map marker popups\n- Integrate Leaflet Draw for polygon zone creation\n- Add CSS styles for table view and view toggle\n- Remove unused leaflet.markercluster dependency\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
