@@ -43,48 +43,44 @@ jobs:
         echo "Waiting for application to start..."
         npx wait-on http://localhost:4000
 
-    - name: Start Tunnel (Localtunnel)
+    - name: Start Cloudflare Tunnel
       id: tunnel
       run: |
-        # Usar npx para ejecutar localtunnel sin instalación global previa
-        # Intentar iniciar el túnel varias veces si falla
-        MAX_RETRIES=3
-        RETRY_COUNT=0
-        TUNNEL_URL=""
+        # Descargar e instalar cloudflared
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          choco install cloudflared
+        fi
 
-        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-          echo "Attempting to start localtunnel (Attempt $((RETRY_COUNT+1))/$MAX_RETRIES)..."
-          
-          # Iniciar localtunnel en segundo plano
-          npx localtunnel --port 4000 > tunnel.log 2>&1 &
-          LT_PID=$!
-          
-          # Esperar hasta 30 segundos para que aparezca la URL
-          COUNTER=0
-          while [ $COUNTER -lt 30 ]; do
-            if grep -q "your url is" tunnel.log; then
-              TUNNEL_URL=$(grep "your url is" tunnel.log | awk '{print $4}')
+        # Iniciar el túnel
+        # Usamos --url http://localhost:4000 para exponer el puerto local
+        # Guardamos el log para extraer la URL
+        cloudflared tunnel --url http://localhost:4000 > tunnel.log 2>&1 &
+        
+        # Esperar a que el túnel genere la URL
+        echo "Waiting for Cloudflare Tunnel URL..."
+        MAX_RETRIES=30
+        COUNTER=0
+        TUNNEL_URL=""
+        
+        while [ $COUNTER -lt $MAX_RETRIES ]; do
+          if grep -q "trycloudflare.com" tunnel.log; then
+            TUNNEL_URL=$(grep -o 'https://[^ ]*\.trycloudflare.com' tunnel.log | head -n 1)
+            if [ -n "$TUNNEL_URL" ]; then
               echo "Tunnel started successfully!"
               break
             fi
-            sleep 1
-            COUNTER=$((COUNTER+1))
-          done
-          
-          if [ -n "$TUNNEL_URL" ]; then
-            break
           fi
-          
-          echo "Failed to get URL, retrying..."
-          kill $LT_PID || true
-          RETRY_COUNT=$((RETRY_COUNT+1))
-          sleep 5
+          sleep 1
+          COUNTER=$((COUNTER+1))
         done
 
         cat tunnel.log
         
         if [ -z "$TUNNEL_URL" ]; then
-          echo "Error: Could not retrieve tunnel URL after $MAX_RETRIES attempts"
+          echo "Error: Could not retrieve tunnel URL"
           exit 1
         fi
         

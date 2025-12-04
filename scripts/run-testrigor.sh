@@ -16,44 +16,15 @@ if [ -z "$APP_URL" ]; then
   exit 1
 fi
 
-# Prepare the JSON payload with test cases
-# We read the test_definitions.json and embed it into the baselineMutations field
-# We also include the URL and other parameters
-
-if [ -f "test_definitions.json" ]; then
-  echo "Found test_definitions.json, including in request..."
-  # Use jq to construct the payload safely
-  # We set explicitMutations: false so we don't delete existing tests in the suite, just add/update these.
-  # If you want to ONLY run these, you might want to use a different strategy, but for CI/CD usually we want to run everything or a subset.
-  # Here we inject them as baseline mutations.
-  
-  PAYLOAD=$(jq -n \
-    --arg url "$APP_URL" \
-    --slurpfile cases test_definitions.json \
-    '{
-      url: $url, 
-      forceCancelPreviousTesting: true, 
-      baselineMutations: $cases[],
-      explicitMutations: false
-    }')
-else
-  echo "No test_definitions.json found, running existing suite..."
-  PAYLOAD=$(jq -n \
-    --arg url "$APP_URL" \
-    '{
-      url: $url, 
-      forceCancelPreviousTesting: true
-    }')
-fi
-
 echo "Triggering TestRigor for Suite ID: $TESTRIGOR_SUITE_ID"
 echo "Testing URL: $APP_URL"
 
 # Trigger the retest
+# We use the 'url' parameter to tell TestRigor where to test
 RESPONSE=$(curl -s -X POST \
   -H "Content-type: application/json" \
   -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
-  --data "$PAYLOAD" \
+  --data "{ \"url\": \"$APP_URL\", \"forceCancelPreviousTesting\": true }" \
   "https://api.testrigor.com/api/v1/apps/$TESTRIGOR_SUITE_ID/retest")
 
 echo "Trigger Response: $RESPONSE"
