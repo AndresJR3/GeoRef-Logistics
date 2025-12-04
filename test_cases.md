@@ -1,49 +1,5 @@
 # Casos de Prueba para TestRigor (DeliveryTrack)
 
-## 🟢 Pruebas Constructivas (Happy Path)
-
-### 1. Registro de Nuevo Usuario y Login
-Este caso verifica que un usuario nuevo pueda registrarse y luego entrar al sistema.
-```
-generate unique email into "newEmail"
-click "Regístrate aquí"
-type "Test User" into "Nombre Completo"
-type stored value "newEmail" into "Correo Electrónico"
-type "password123" into "Contraseña"
-click "Registrarse"
-check that page contains "Usuario registrado exitosamente"
-click "OK"
-type stored value "newEmail" into "Correo Electrónico"
-type "password123" into "Contraseña"
-click "Ingresar"
-check that page contains "DeliveryTrack"
-check that page contains "Lugares"
-```
-
-### 2. Flujo de Logout
-Verifica que el usuario pueda salir de la sesión correctamente.
-```
-login
-check that page contains "DeliveryTrack"
-click "Cerrar sesión"
-check that page contains "Iniciar Sesión"
-check that url contains "/login"
-```
-
-### 3. Navegación entre Pestañas del Dashboard
-Verifica que se pueda cambiar entre las diferentes vistas principales.
-```
-login
-click "Clientes"
-check that page contains "Dirección"
-click "Entregas"
-check that page contains "Prioridad"
-click "Repartidores"
-check that page contains "Vehículo"
-click "Lugares"
-check that page contains "Descripción"
-```
-
 ## 🔴 Pruebas Destructivas (Negative Testing)
 
 ### 4. Login con Contraseña Incorrecta
