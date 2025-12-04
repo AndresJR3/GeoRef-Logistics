@@ -1,0 +1,66 @@
+[
+    {
+        "description": "Login - Campos Vacíos",
+        "customSteps": "click \"Ingresar\"\ncheck that page contains \"Error\" or page contains \"Requerido\" or page contains \"Faltan campos\"",
+        "labels": [
+            "login",
+            "negative"
+        ]
+    },
+    {
+        "description": "Login - Usuario No Registrado",
+        "customSteps": "type \"usuario_fantasma@test.com\" into \"Correo Electrónico\"\ntype \"password123\" into \"Contraseña\"\nclick \"Ingresar\"\ncheck that page contains \"Error\" or page contains \"no encontrado\" or page contains \"Credenciales inválidas\"",
+        "labels": [
+            "login",
+            "negative"
+        ]
+    },
+    {
+        "description": "Login - Contraseña Incorrecta",
+        "customSteps": "type \"testuser\" into \"Username\"\ntype \"wrongpass\" into \"Password\"\nclick \"Sign In\"\ncheck that page contains \"Invalid credentials\"",
+        "labels": [
+            "login",
+            "negative"
+        ]
+    },
+    {
+        "description": "Login - Inyección SQL Básica",
+        "customSteps": "type \"' OR '1'='1\" into \"Correo Electrónico\"\ntype \"' OR '1'='1\" into \"Contraseña\"\nclick \"Ingresar\"\ncheck that page not contains \"Dashboard\"\ncheck that page contains \"Error\" or page contains \"inválido\"",
+        "labels": [
+            "login",
+            "security"
+        ]
+    },
+    {
+        "description": "Login - Intento XSS",
+        "customSteps": "type \"<script>alert('hacked')</script>\" into \"Correo Electrónico\"\ntype \"password\" into \"Contraseña\"\nclick \"Ingresar\"\ncheck that page not contains \"alert\"\ncheck that page contains \"Error\" or page contains \"inválido\"",
+        "labels": [
+            "login",
+            "security"
+        ]
+    },
+    {
+        "description": "Registro - Email Inválido (Sin @)",
+        "customSteps": "click \"Regístrate aquí\"\ntype \"Test User\" into \"Nombre Completo\"\ntype \"correo_sin_arroba\" into \"Correo Electrónico\"\ntype \"123456\" into \"Contraseña\"\nclick \"Registrarse\"\ncheck that page contains \"Crear Cuenta\" or page contains \"email inválido\"",
+        "labels": [
+            "register",
+            "negative"
+        ]
+    },
+    {
+        "description": "Registro - Contraseña Muy Corta",
+        "customSteps": "click \"Regístrate aquí\"\ntype \"Short Pass\" into \"Nombre Completo\"\ngenerate unique email into \"email\"\ntype stored value \"email\" into \"Correo Electrónico\"\ntype \"123\" into \"Contraseña\"\nclick \"Registrarse\"\ncheck that page contains \"Crear Cuenta\" or page contains \"mínimo\"",
+        "labels": [
+            "register",
+            "negative"
+        ]
+    },
+    {
+        "description": "Registro - Espacios en Blanco",
+        "customSteps": "click \"Regístrate aquí\"\ntype \"   \" into \"Nombre Completo\"\ntype \"   \" into \"Correo Electrónico\"\ntype \"   \" into \"Contraseña\"\nclick \"Registrarse\"\ncheck that page contains \"Crear Cuenta\"",
+        "labels": [
+            "register",
+            "negative"
+        ]
+    }
+]
