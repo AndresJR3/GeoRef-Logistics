@@ -1,0 +1,75 @@
+name: CI/CD with TestRigor
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      # Reemplaza estos valores con tus secretos de GitHub en Settings > Secrets and variables > Actions
+      # O usa los valores directos si es un repo privado y seguro (no recomendado para repos públicos)
+      TESTRIGOR_AUTH_TOKEN: ${{ secrets.TESTRIGOR_AUTH_TOKEN || '6a958ab2-85f3-448b-9f9d-d9a7e8a6f140' }}
+      TESTRIGOR_SUITE_ID: ${{ secrets.TESTRIGOR_SUITE_ID || 'jsJR6vLAgQRcB2tCp' }}
+      PORT: 4000
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: |
+        npm install
+        # Instalar dependencias del cliente también si no lo hace el postinstall
+        cd client && npm install
+
+    - name: Build Application
+      run: npm run build
+
+    - name: Start Application
+      run: |
+        # Iniciar la aplicación en segundo plano
+        npm run production &
+        echo "Waiting for application to start..."
+        npx wait-on http://localhost:4000
+
+    - name: Start Tunnel (Localtunnel)
+      id: tunnel
+      run: |
+        # Instalar localtunnel globalmente o usar npx
+        npm install -g localtunnel
+        
+        # Iniciar el túnel en segundo plano y guardar el log
+        lt --port 4000 > tunnel.log 2>&1 &
+        
+        # Esperar a que el túnel genere la URL
+        sleep 10
+        
+        # Leer la URL del log
+        cat tunnel.log
+        TUNNEL_URL=$(grep "your url is" tunnel.log | awk '{print $4}')
+        
+        if [ -z "$TUNNEL_URL" ]; then
+          echo "Error: Could not retrieve tunnel URL"
+          exit 1
+        fi
+        
+        echo "Tunnel URL: $TUNNEL_URL"
+        echo "APP_URL=$TUNNEL_URL" >> $GITHUB_ENV
+
+    - name: Run TestRigor Tests
+      run: |
+        # Asegurar finales de línea Unix por si se subió desde Windows
+        sed -i 's/\r$//' scripts/run-testrigor.sh
+        chmod +x scripts/run-testrigor.sh
+        ./scripts/run-testrigor.sh
