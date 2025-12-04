@@ -51,12 +51,21 @@ do
   # Extract status code (simple parsing)
   # In a real CI env, we might want to use jq, but we'll try to be dependency-light or assume jq is available (it is in GH Actions)
   
-  # Using jq if available, otherwise fallback to grep/awk
+  # Extract status and details URL
+  # We try to use jq if available, otherwise simple grep/cut
   if command -v jq &> /dev/null; then
     STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.status')
+    DETAILS_URL=$(echo "$STATUS_RESPONSE" | jq -r '.detailsUrl // empty')
   else
-    # Fallback parsing
     STATUS=$(echo "$STATUS_RESPONSE" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+    # Basic attempt to extract detailsUrl if jq is missing
+    DETAILS_URL=$(echo "$STATUS_RESPONSE" | grep -o '"detailsUrl":"[^"]*"' | cut -d'"' -f4)
+  fi
+  
+  # Print the URL once if we found it and haven't printed it yet
+  if [ -n "$DETAILS_URL" ] && [ "$DETAILS_URL" != "null" ] && [ -z "$PRINTED_URL" ]; then
+    echo "View execution details here: $DETAILS_URL"
+    PRINTED_URL="true"
   fi
   
   echo "Current Status: $STATUS"
@@ -67,10 +76,16 @@ do
       ;;
     "Finished")
       echo "Tests finished successfully!"
+      if [ -n "$DETAILS_URL" ]; then
+        echo "Full Report: $DETAILS_URL"
+      fi
       exit 0
       ;;
     "Failed")
       echo "Tests failed."
+      if [ -n "$DETAILS_URL" ]; then
+        echo "See failure details: $DETAILS_URL"
+      fi
       exit 1
       ;;
     "Canceled")
